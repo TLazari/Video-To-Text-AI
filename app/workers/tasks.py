@@ -201,7 +201,7 @@ async def _analyze_video_async(job_id: str, request_data: dict) -> dict:
         completed_at=end_time,
         processing_time_seconds=(end_time - start_time).total_seconds(),
         result=result,
-        _links=Links(
+        links=Links(
             self=f"/api/v1/jobs/{job_id}",
             status=f"/api/v1/jobs/{job_id}",
             cancel=None

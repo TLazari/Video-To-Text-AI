@@ -148,7 +148,7 @@ class VideoAnalysisResponse(BaseModel):
     result: Optional[AnalysisResult] = Field(None, description="Resultado da análise")
     progress: Optional[ProgressInfo] = Field(None, description="Informações de progresso")
     error: Optional[ErrorInfo] = Field(None, description="Informações de erro")
-    _links: Links = Field(..., description="Links HATEOAS")
+    links: Links = Field(..., description="Links HATEOAS")
 
     model_config = {
         "json_schema_extra": {
@@ -207,4 +207,4 @@ class JobSubmittedResponse(BaseModel):
     status: JobStatus = Field(default=JobStatus.PENDING, description="Status inicial")
     created_at: datetime = Field(..., description="Data/hora de criação")
     estimated_time_seconds: int = Field(..., description="Tempo estimado de processamento")
-    _links: Links = Field(..., description="Links HATEOAS")
+    links: Links = Field(..., description="Links HATEOAS")

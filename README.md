@@ -64,7 +64,7 @@ curl http://localhost:8000/health
 curl -X POST http://localhost:8000/api/v1/jobs \
   -H "Content-Type: application/json" \
   -d '{
-    "video_url": "file:///C:/videos/sample.mp4",
+    "video_url": "http://localhost:8000/api/v1/videos/sample.mp4",
     "options": {
       "analysis_depth": "detailed",
       "include_timestamps": true,
@@ -74,6 +74,8 @@ curl -X POST http://localhost:8000/api/v1/jobs \
     }
   }'
 ```
+
+**⚠️ Importante:** A URL deve ser **HTTP/HTTPS**, não `file:///`
 
 **Resposta:**
 ```json

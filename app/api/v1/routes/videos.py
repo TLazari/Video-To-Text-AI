@@ -87,7 +87,7 @@ async def submit_video_analysis(request: VideoAnalysisRequest) -> JobSubmittedRe
             status=JobStatus.PENDING,
             created_at=created_at,
             estimated_time_seconds=180,  # Estimativa genérica
-            _links=Links(
+            links=Links(
                 self=f"/api/v1/jobs/{job_id}",
                 status=f"/api/v1/jobs/{job_id}",
                 cancel=f"/api/v1/jobs/{job_id}/cancel"
@@ -149,7 +149,7 @@ async def get_analysis_result(job_id: str) -> VideoAnalysisResponse:
             status=status_enum,
             created_at=created_at,
             processing_time_seconds=None,
-            _links=Links(
+            links=Links(
                 self=f"/api/v1/jobs/{job_id}",
                 status=f"/api/v1/jobs/{job_id}",
                 cancel=f"/api/v1/jobs/{job_id}/cancel" if status_enum == JobStatus.PENDING else None
