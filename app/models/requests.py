@@ -50,6 +50,11 @@ class VideoAnalysisRequest(BaseModel):
         default_factory=AnalysisOptions,
         description="Opções de análise"
     )
+    custom_prompt: Optional[str] = Field(
+        default=None,
+        description="Prompt customizado para análise do vídeo. Se fornecido, sobrescreve o prompt gerado pelas opções.",
+        examples=["Analise este vídeo e identifique os principais tópicos discutidos"]
+    )
 
     @field_validator('video_url')
     @classmethod
@@ -71,6 +76,10 @@ class VideoAnalysisRequest(BaseModel):
                         "extract_entities": True,
                         "detect_sentiment": True
                     }
+                },
+                {
+                    "video_url": "http://localhost:8000/videos/presentation.mp4",
+                    "custom_prompt": "Analise os principais tópicos, identifique as pessoas presentes e liste as conclusões em formato bullet points"
                 }
             ]
         }

@@ -137,19 +137,28 @@ async def _analyze_video_async(job_id: str, request_data: dict) -> dict:
     )
 
     # 4. Constrói prompt
+    custom_prompt = request_data.get("custom_prompt")
+
+    # Extrai opções de análise
     analysis_depth = options.get("analysis_depth", "standard")
     include_timestamps = options.get("include_timestamps", True)
     language = options.get("language", "pt-BR")
     extract_entities = options.get("extract_entities", False)
     detect_sentiment = options.get("detect_sentiment", False)
 
-    prompt = openrouter_client.build_analysis_prompt(
-        include_timestamps=include_timestamps,
-        language=language,
-        extract_entities=extract_entities,
-        detect_sentiment=detect_sentiment,
-        analysis_depth=analysis_depth
-    )
+    if custom_prompt:
+        # Usa o prompt customizado fornecido
+        prompt = custom_prompt
+        logger.info("Using custom prompt", job_id=job_id)
+    else:
+        # Constrói prompt automático baseado nas opções
+        prompt = openrouter_client.build_analysis_prompt(
+            include_timestamps=include_timestamps,
+            language=language,
+            extract_entities=extract_entities,
+            detect_sentiment=detect_sentiment,
+            analysis_depth=analysis_depth
+        )
 
     # 5. Chama OpenRouter
     logger.info("Calling OpenRouter API", job_id=job_id)
