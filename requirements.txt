@@ -1,0 +1,29 @@
+# FastAPI & Uvicorn
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# Async HTTP Client
+httpx==0.26.0
+
+# Video Processing
+opencv-python==4.9.0.80
+numpy==1.26.3
+
+# Background Jobs
+celery==5.3.6
+redis==5.0.1
+
+# Resilience
+tenacity==8.2.3
+
+# Logging
+structlog==24.1.0
+python-json-logger==2.0.7
+
+# Monitoring (Celery)
+flower==2.0.1
+
+# Development
+python-dotenv==1.0.0

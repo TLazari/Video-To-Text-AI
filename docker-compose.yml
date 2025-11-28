@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # Redis - Cache e message broker
+  redis:
+    image: redis:7-alpine
+    container_name: video-analysis-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - video-network
+
+  # FastAPI API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: video-analysis-api
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DEBUG=true
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+      - ./videos:/videos
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - video-network
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: video-analysis-worker
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DEBUG=true
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+      - ./videos:/videos
+    command: celery -A app.workers.tasks worker --loglevel=info --concurrency=2
+    networks:
+      - video-network
+
+  # Celery Flower (opcional - monitoramento)
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: video-analysis-flower
+    ports:
+      - "5555:5555"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A app.workers.tasks flower --port=5555 --broker=redis://redis:6379/0
+    networks:
+      - video-network
+
+volumes:
+  redis_data:
+
+networks:
+  video-network:
+    driver: bridge
