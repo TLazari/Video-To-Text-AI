@@ -48,12 +48,15 @@ class VideoAnalysisRequest(BaseModel):
     )
     options: Optional[AnalysisOptions] = Field(
         default_factory=AnalysisOptions,
-        description="Opções de análise"
+        description="Opções de análise automática (ignorado se custom_prompt for fornecido). Define profundidade, idioma, entidades, sentimento, etc."
     )
     custom_prompt: Optional[str] = Field(
         default=None,
-        description="Prompt customizado para análise do vídeo. Se fornecido, sobrescreve o prompt gerado pelas opções.",
-        examples=["Analise este vídeo e identifique os principais tópicos discutidos"]
+        description="[OPCIONAL] Prompt customizado para análise do vídeo (sobrescreve as opções). Use quando quiser controle total sobre as instruções de análise. Se não fornecido, usa as opções automáticas. Exemplo: 'Analise e forneça: 1) Resumo, 2) Tópicos em bullet points, 3) Conclusão'",
+        examples=[
+            "Analise este vídeo e identifique os principais tópicos discutidos",
+            "Forneça: 1) Resumo em 3 frases, 2) Tópicos em bullet points, 3) Conclusão"
+        ]
     )
 
     @field_validator('video_url')

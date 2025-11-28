@@ -27,7 +27,7 @@ cp .env.example .env
 **Arquivo `.env`:**
 ```env
 OPENROUTER_API_KEY=sk-or-xxxxx-xxxxx
-OPENROUTER_MODEL=nvidia/nemotron-nano-12b-v2-vl:free
+OPENROUTER_MODEL=google/gemini-2.5-flash-lite
 REDIS_HOST=redis
 DEBUG=true
 ```
@@ -60,6 +60,8 @@ curl http://localhost:8000/health
 
 ### 1. Submeter vídeo para análise
 
+#### Opção A: Com análise automática (baseada em opções)
+
 ```bash
 curl -X POST http://localhost:8000/api/v1/jobs \
   -H "Content-Type: application/json" \
@@ -74,6 +76,30 @@ curl -X POST http://localhost:8000/api/v1/jobs \
     }
   }'
 ```
+
+**Opções disponíveis:**
+- `analysis_depth`: `quick` (concisa) | `standard` (padrão) | `detailed` (muito detalhada)
+- `include_timestamps`: `true` | `false` - Incluir timestamps de momentos-chave
+- `language`: `pt-BR`, `en-US`, `es-ES`, etc. - Idioma da análise
+- `extract_entities`: `true` | `false` - Extrair pessoas, objetos, locais
+- `detect_sentiment`: `true` | `false` - Detectar sentimento/tom do vídeo
+
+#### Opção B: Com prompt customizado (controle total)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/jobs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "video_url": "http://localhost:8000/api/v1/videos/sample.mp4",
+    "custom_prompt": "Analise este vídeo e forneça: 1) Resumo em 3 frases, 2) Tópicos principais em bullet points, 3) Conclusão. Seja conciso e direto."
+  }'
+```
+
+**Quando usar `custom_prompt`:**
+- Você quer controle total sobre as instruções de análise
+- Precisa de um formato específico que não se encaixa nas opções predefinidas
+- Quer instruções em múltiplos idiomas ou com lógica customizada
+- Se `custom_prompt` for fornecido, as opções `options` serão ignoradas
 
 **⚠️ Importante:** A URL deve ser **HTTP/HTTPS**, não `file:///`
 
@@ -136,7 +162,7 @@ curl http://localhost:8000/api/v1/jobs/550e8400-e29b-41d4-a716-446655440000
     },
     "ai_provider": {
       "provider": "openrouter",
-      "model": "nvidia/nemotron-nano-12b-v2-vl:free",
+      "model": "google/gemini-2.5-flash-lite",
       "tokens_used": 1523,
       "processing_time_ms": 3200
     }
@@ -253,7 +279,7 @@ video-to-text/
 | Variável | Padrão | Descrição |
 |----------|--------|-----------|
 | `OPENROUTER_API_KEY` | - | Sua chave da API OpenRouter (obrigatório) |
-| `OPENROUTER_MODEL` | `nvidia/nemotron-nano-12b-v2-vl:free` | Modelo a usar |
+| `OPENROUTER_MODEL` | `google/gemini-2.5-flash-lite` | Modelo a usar (com suporte a vídeo) |
 | `REDIS_HOST` | `redis` | Host do Redis |
 | `REDIS_PORT` | `6379` | Porta do Redis |
 | `DEBUG` | `true` | Modo debug |
@@ -286,11 +312,21 @@ pip install opencv-python
 
 ### Vídeo não encontrado
 
-Verifique o caminho do vídeo. Deve usar protocolo `file:///`:
-- ✅ `file:///C:/videos/sample.mp4`
-- ✅ `file:////home/user/videos/sample.mp4`
-- ❌ `C:/videos/sample.mp4`
-- ❌ `/home/user/videos/sample.mp4`
+Verifique se a URL está correta. Deve usar protocolo **HTTP ou HTTPS**:
+- ✅ `http://localhost:8000/api/v1/videos/sample.mp4` (local)
+- ✅ `https://example.com/videos/sample.mp4` (remoto)
+- ✅ `http://example.com/videos/sample.mp4` (remoto)
+- ❌ `file:///C:/videos/sample.mp4` (não suportado)
+- ❌ `C:/videos/sample.mp4` (não suportado)
+
+**Para servir vídeos localmente**, use o endpoint de files da API:
+```bash
+# Listar vídeos disponíveis
+curl http://localhost:8000/api/v1/videos
+
+# Fazer download
+curl http://localhost:8000/api/v1/videos/sample.mp4 -o sample.mp4
+```
 
 ---
 
@@ -318,13 +354,17 @@ Verifique o caminho do vídeo. Deve usar protocolo `file:///`:
 
 ## 📝 Notas Importantes
 
-### URLs de Vídeo Local
+### URLs de Vídeo
 
-⚠️ **Importante**: Atualmente, a API espera URLs locais no formato `file://`. Para vídeos remotos, será necessário fazer download primeiro.
+A API aceita URLs HTTP/HTTPS para vídeos:
+- **Local**: `http://localhost:8000/api/v1/videos/sample.mp4` (servido pela própria API)
+- **Remoto**: `https://example.com/videos/sample.mp4` (qualquer servidor HTTP/HTTPS)
+
+⚠️ **Importante**: URLs com `file://` não são suportadas. A API trabalha apenas com URLs HTTP/HTTPS.
 
 ### Limite de Tokens
 
-O modelo `nvidia/nemotron-nano-12b-v2-vl` tem limite de tokens. Vídeos muito longos podem ter limite de análise.
+O modelo `google/gemini-2.5-flash-lite` tem limite de tokens. Para análises mais detalhadas, vídeos muito longos podem resultar em análises resumidas.
 
 ### Processamento
 
