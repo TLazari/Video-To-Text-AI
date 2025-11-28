@@ -210,7 +210,7 @@ async def _analyze_video_async(job_id: str, request_data: dict) -> dict:
 
     await openrouter_client.close()
 
-    return response.model_dump()
+    return response.model_dump(mode='json')
 
 
 def _extract_summary(markdown: str) -> str:

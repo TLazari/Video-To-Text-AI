@@ -2,6 +2,7 @@
 Cliente para integração com OpenRouter API
 """
 import httpx
+import base64
 from typing import Dict, Any, Optional, List
 from tenacity import (
     retry,
@@ -87,6 +88,53 @@ class OpenRouterClient:
             timeout=timeout,
             max_retries=max_retries
         )
+
+    async def _get_video_as_base64(self, video_url: str) -> str:
+        """
+        Converte vídeo (URL ou arquivo) para data URL em Base64
+
+        Args:
+            video_url: URL HTTP do vídeo ou caminho do arquivo
+
+        Returns:
+            Data URL no formato: data:video/mp4;base64,<dados>
+        """
+        logger.info("Converting video to base64", video_url=video_url)
+
+        # Se for URL HTTP/HTTPS, faz download
+        if video_url.startswith(("http://", "https://")):
+            try:
+                # Resolve URL para dentro de container Docker
+                resolved_url = video_url
+                if "localhost:8000" in video_url:
+                    resolved_url = video_url.replace("localhost:8000", "host.docker.internal:8000")
+
+                async with httpx.AsyncClient(timeout=300) as client:
+                    response = await client.get(resolved_url)
+                    response.raise_for_status()
+                    video_data = response.content
+                    logger.info("Video downloaded from URL", size_bytes=len(video_data))
+            except Exception as e:
+                logger.error("Failed to download video", error=str(e))
+                raise OpenRouterAPIError(f"Failed to download video: {str(e)}")
+        else:
+            # Se for arquivo local, lê do disco
+            try:
+                with open(video_url, "rb") as f:
+                    video_data = f.read()
+                logger.info("Video read from disk", size_bytes=len(video_data))
+            except Exception as e:
+                logger.error("Failed to read video file", error=str(e))
+                raise OpenRouterAPIError(f"Failed to read video file: {str(e)}")
+
+        # Codifica em Base64
+        base64_data = base64.b64encode(video_data).decode('utf-8')
+
+        # Retorna como data URL (mp4 é padrão)
+        data_url = f"data:video/mp4;base64,{base64_data}"
+        logger.info("Video converted to base64", data_url_size=len(data_url))
+
+        return data_url
 
     async def close(self):
         """Fecha conexões do cliente"""
@@ -193,10 +241,10 @@ class OpenRouterClient:
         temperature: float = 0.7
     ) -> Dict[str, Any]:
         """
-        Analisa vídeo usando modelo de visão
+        Analisa vídeo usando modelo de visão (com Base64 embedding)
 
         Args:
-            video_path: Caminho do vídeo (file:/// URL)
+            video_path: URL HTTP do vídeo ou caminho do arquivo local
             prompt: Prompt de análise
             max_tokens: Máximo de tokens na resposta
             temperature: Temperatura do modelo (0-1)
@@ -205,12 +253,15 @@ class OpenRouterClient:
             Resposta da API com análise
 
         Raises:
-            OpenRouterAPIError: Erro na API
+            OpenRouterAPIError: Erro na API ou ao processar vídeo
             CircuitBreakerError: Circuit breaker aberto
         """
 
         @self.circuit_breaker
         async def _protected_call():
+            # Converte vídeo para Base64
+            video_data_url = await self._get_video_as_base64(video_path)
+
             payload = {
                 "model": self.model,
                 "messages": [
@@ -232,7 +283,7 @@ class OpenRouterClient:
                             {
                                 "type": "video_url",
                                 "video_url": {
-                                    "url": video_path
+                                    "url": video_data_url
                                 }
                             }
                         ]

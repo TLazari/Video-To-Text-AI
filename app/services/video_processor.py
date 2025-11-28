@@ -19,6 +19,17 @@ from app.config import settings
 logger = structlog.get_logger(__name__)
 
 
+def _resolve_url_for_container(url: str) -> str:
+    """
+    Resolve URL para dentro de container Docker.
+    Se a URL usar localhost, tenta acessar via host.docker.internal
+    (funciona em Windows/Mac com Docker Desktop)
+    """
+    if "localhost:8000" in url:
+        return url.replace("localhost:8000", "host.docker.internal:8000")
+    return url
+
+
 class VideoProcessorService:
     """Serviço para processar vídeos"""
 
@@ -55,10 +66,13 @@ class VideoProcessorService:
                     f"Formatos aceitos: {', '.join(settings.SUPPORTED_FORMATS)}"
                 )
 
+            # Resolve URL para funcionar dentro de containers Docker
+            resolved_url = _resolve_url_for_container(video_url)
+
             # Tenta fazer HEAD request para validar acesso
             async with httpx.AsyncClient(timeout=10) as client:
                 try:
-                    response = await client.head(video_url)
+                    response = await client.head(resolved_url)
                     response.raise_for_status()
                 except httpx.HTTPError as e:
                     raise VideoNotFoundError(
@@ -116,9 +130,12 @@ class VideoProcessorService:
         try:
             import httpx
 
+            # Resolve URL para funcionar dentro de containers Docker
+            resolved_url = _resolve_url_for_container(video_url)
+
             # Faz HEAD request para extrair headers
             async with httpx.AsyncClient(timeout=10) as client:
-                response = await client.head(video_url)
+                response = await client.head(resolved_url)
                 response.raise_for_status()
 
                 # Extrai informações dos headers

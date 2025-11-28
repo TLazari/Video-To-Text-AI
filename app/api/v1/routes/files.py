@@ -16,6 +16,7 @@ VIDEOS_DIR = Path("/videos")
 
 
 @router.get("/{filename}", summary="Download/Stream de vídeo")
+@router.head("/{filename}", summary="Validar vídeo")
 async def serve_video(filename: str):
     """
     Serve um vídeo do diretório /videos.
